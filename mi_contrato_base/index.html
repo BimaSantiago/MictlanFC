@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt2Contract - Stellar Soroban</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Paleta inspirada en la imagen de referencia: fondo oscuro profundo y contenedores en gris plomo */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f17; color: #e2e8f0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar de Historial */
+        aside { width: 300px; background-color: #121824; border-right: 1px solid #1e293b; display: flex; flex-direction: column; padding: 20px; }
+        aside h2 { font-size: 16px; color: #a78bfa; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+        .history-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
+        .history-card { background: #1a2234; border: 1px solid #283548; padding: 12px; border-radius: 8px; font-size: 13px; transition: border-color 0.2s; }
+        .history-card:hover { border-color: #a78bfa; }
+        .history-prompt { color: #94a3b8; margin-bottom: 6px; font-style: italic; }
+        .history-id { font-family: monospace; color: #38bdf8; font-size: 11px; word-break: break-all; margin-bottom: 8px; }
+        .history-link { color: #34d399; text-decoration: none; font-weight: bold; font-size: 12px; }
+        .history-link:hover { text-decoration: underline; }
+        .empty-history { color: #64748b; text-align: center; margin-top: 40px; font-size: 13px; }
+
+        /* Contenido Principal */
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px 40px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #1e293b; padding-bottom: 20px; }
+        .brand h1 { color: #f8fafc; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+        .brand p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+
+        /* Barra Wallet Freighter con tonos idénticos a referencia */
+        .wallet-box { background: #121824; border: 1px solid #1e293b; padding: 10px 18px; border-radius: 8px; display: flex; align-items: center; gap: 15px; }
+        .wallet-status { font-family: monospace; color: #94a3b8; font-size: 13px; }
+        .wallet-btn { background-color: #7c3aed; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s; }
+        .wallet-btn:hover { background-color: #6d28d9; }
+
+        /* Tarjeta de Generación */
+        .card { background-color: #121824; border: 1px solid #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4); margin-bottom: 25px; }
+        label { display: block; margin-bottom: 10px; font-weight: 600; color: #cbd5e1; font-size: 14px; }
+        
+        .templates { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .template-btn { background-color: #1a2234; color: #cbd5e1; border: 1px solid #283548; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .template-btn:hover { background-color: #283548; color: #fff; border-color: #7c3aed; }
+
+        textarea { width: 100%; height: 110px; padding: 14px; border-radius: 8px; border: 1px solid #283548; background-color: #0b0f17; color: #fff; font-size: 14px; resize: vertical; box-sizing: border-box; }
+        textarea:focus { outline: none; border-color: #7c3aed; }
+
+        .action-btn { background-color: #7c3aed; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-size: 15px; font-weight: bold; width: 100%; cursor: pointer; transition: background 0.2s; margin-top: 15px; }
+        .action-btn:hover { background-color: #6d28d9; }
+        .action-btn:disabled { background-color: #334155; cursor: not-allowed; }
+
+        /* Loader */
+        #loading { display: none; text-align: center; margin-top: 20px; color: #a78bfa; font-weight: 500; font-size: 14px; }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); width: 20px; height: 20px; border-radius: 50%; border-top-color: #7c3aed; animation: spin 1s infinite linear; display: inline-block; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Resultados */
+        .result-box { background-color: #121824; border: 1px solid #059669; }
+        .result-box h3 { color: #34d399; margin-bottom: 12px; font-size: 16px; }
+        pre { background: #0b0f17; padding: 15px; border-radius: 6px; overflow-x: auto; color: #e2e8f0; font-size: 13px; max-height: 220px; border: 1px solid #1e293b; margin-top: 10px; }
+        a { color: #38bdf8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR DE HISTORIAL -->
+    <aside>
+        <h2>📜 Historial de Despliegues</h2>
+        <div class="history-container" id="historyList">
+            <div class="empty-history" id="emptyHistory">No hay contratos registrados.</div>
+        </div>
+    </aside>
+
+    <!-- PANEL PRINCIPAL -->
+    <main>
+        <header>
+            <div class="brand">
+                <h1>⚡ Prompt2Contract</h1>
+                <p>Automatización de Smart Contracts con Soroban & IA</p>
+            </div>
+            <div class="wallet-box">
+                <div>
+                    <span style="display: block; font-size: 10px; color: #64748b; font-weight: bold;">WALLET FREIGHTER</span>
+                    <span id="walletStatus" class="wallet-status">No conectada</span>
+                </div>
+                <button id="connectWalletBtn" class="wallet-btn" onclick="conectarFreighter()">Conectar</button>
+            </div>
+        </header>
+
+        <div class="card">
+            <label for="promptInput">Escribe la lógica de tu contrato inteligente:</label>
+            
+            <div class="templates">
+                <button class="template-btn" onclick="setTemplate('hola')">👋 Hola Mundo</button>
+                <button class="template-btn" onclick="setTemplate('votacion')">🗳️ Votación DAO</button>
+                <button class="template-btn" onclick="setTemplate('token')">🪙 Faucet Token</button>
+            </div>
+
+            <textarea id="promptInput" placeholder="Ej. Genera un contrato que permita registrar propuestas de votación..."></textarea>
+            
+            <button id="deployBtn" class="action-btn" onclick="generarYDesplegar()">Generar y Desplegar a Testnet</button>
+
+            <div id="loading">
+                <div class="spinner"></div><span id="loadingText">Procesando solicitud...</span>
+            </div>
+        </div>
+
+        <!-- Resultados del despliegue -->
+        <div id="resultContainer" style="display:none;" class="card result-box">
+            <h3>✨ ¡Contrato Desplegado con Éxito!</h3>
+            <p style="font-size: 14px;"><strong>Contract ID:</strong> <span id="contractIdText" style="font-family: monospace; color: #38bdf8;"></span></p>
+            <p style="margin-top: 8px; font-size: 14px;"><strong>Explorador Testnet:</strong> <a id="explorerLink" href="#" target="_blank">Ver en Stellar Expert ↗</a></p>
+            
+            <details style="margin-top: 15px;">
+                <summary style="cursor: pointer; color: #cbd5e1; font-weight: bold; font-size: 13px;">Ver Código Rust Generado</summary>
+                <pre><code id="rustCodeText"></code></pre>
+            </details>
+        </div>
+    </main>
+
+    <!-- Script Freighter API oficial -->
+    <script src="https://unpkg.com/@stellar/freighter-api/dist/index.min.js"></script>
+    <script>
+        const templates = {
+            hola: "Genera un contrato básico en Soroban que reciba un nombre y devuelva un saludo personalizado.",
+            votacion: "Genera un contrato de votación descentralizada donde se puedan registrar propuestas con un contador de votos, asegurando que una dirección no vote dos veces por la misma propuesta.",
+            token: "Genera un contrato de token personalizado en Soroban que permita consultar saldos, transferir tokens y otorgar una cantidad fija gratuita como Faucet público."
+        };
+
+        function setTemplate(key) {
+            document.getElementById('promptInput').value = templates[key];
+        }
+
+        async function conectarFreighter() {
+            try {
+                if (typeof window.freighterApi === 'undefined') {
+                    alert("No se detectó la extensión de Freighter.");
+                    window.open("https://www.freighter.app/", "_blank");
+                    return;
+                }
+
+                const isConnected = await window.freighterApi.isConnected();
+                if (!isConnected) {
+                    alert("Por favor desbloquea tu extensión de Freighter.");
+                    return;
+                }
+
+                const publicKey = await window.freighterApi.requestAccess();
+                if (publicKey) {
+                    const shortKey = publicKey.substring(0, 6) + "..." + publicKey.substring(publicKey.length - 4);
+                    document.getElementById('walletStatus').innerText = shortKey;
+                    document.getElementById('walletStatus').style.color = "#34d399";
+                    
+                    const btn = document.getElementById('connectWalletBtn');
+                    btn.innerText = "Conectado";
+                    btn.style.backgroundColor = "#059669";
+                }
+            } catch (error) {
+                console.error("Error al conectar wallet:", error);
+                alert("Se denegó el acceso a la billetera.");
+            }
+        }
+
+        const steps = [
+            "🤖 Generando código Rust con IA...",
+            "💾 Guardando y configurando archivo lib.rs...",
+            "⚙️ Compilando binario WASM optimizado...",
+            "🚀 Desplegando en Stellar Testnet..."
+        ];
+
+        async function generarYDesplegar() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                alert("Por favor escribe un prompt o selecciona una plantilla.");
+                return;
+            }
+
+            const btn = document.getElementById('deployBtn');
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
+            const resultContainer = document.getElementById('resultContainer');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            resultContainer.style.display = 'none';
+
+            let stepIdx = 0;
+            const interval = setInterval(() => {
+                stepIdx = (stepIdx + 1) % steps.length;
+                loadingText.innerText = steps[stepIdx];
+            }, 3000);
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/generate-and-deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                const data = await response.json();
+                clearInterval(interval);
+                loading.style.display = 'none';
+                btn.disabled = false;
+
+                if (response.ok && data.status === "success") {
+                    document.getElementById('contractIdText').innerText = data.contract_id;
+                    document.getElementById('explorerLink').href = data.explorer_url;
+                    document.getElementById('rustCodeText').innerText = data.rust_code;
+                    resultContainer.style.display = 'block';
+
+                    agregarAlHistorial(data.contract_id, data.explorer_url, prompt);
+                } else {
+                    alert("Error en el proceso: " + (data.detail || "Error desconocido"));
+                }
+
+            } catch (err) {
+                clearInterval(interval);
+                loading.style.display = 'none';
+                btn.disabled = false;
+                alert("No se pudo conectar con el servidor local de FastAPI.");
+                console.error(err);
+            }
+        }
+
+        function agregarAlHistorial(id, url, promptText) {
+            const historyList = document.getElementById('historyList');
+            const emptyMsg = document.getElementById('emptyHistory');
+            if (emptyMsg) emptyMsg.remove();
+
+            const shortPrompt = promptText.length > 40 ? promptText.substring(0, 40) + "..." : promptText;
+            
+            const card = document.createElement('div');
+            card.className = 'history-card';
+            card.innerHTML = `
+                <div class="history-prompt">"${shortPrompt}"</div>
+                <div class="history-id">${id}</div>
+                <a href="${url}" target="_blank" class="history-link">Ver en Explorador ↗</a>
+            `;
+            historyList.prepend(card);
+        }
+    </script>
+</body>
+</html>
