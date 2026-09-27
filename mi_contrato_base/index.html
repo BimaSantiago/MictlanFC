@@ -3,125 +3,570 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prompt2Contract - Stellar Soroban</title>
+    <title>Brevik</title>
+    <meta name="description" content="De lo dicho a lo hecho, un solo clic: convierte un prompt en un contrato Soroban desplegado en Stellar testnet.">
+    <link rel="icon" href="brevik-icon.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #0b0716;
+            --surface: #171029;
+            --surface-raised: #201a38;
+            --border: #322a4d;
+            --ink: #f1edfb;
+            --ink-muted: #9689b8;
+            --brand: #9d5cff;
+            --brand-strong: #7c3aed;
+            --brand-ink: #1c0f33;
+            --code: #c9a6ff;
+            --state-success: #34d399;
+            --state-success-dim: #1d3b30;
+            --state-error: #f2545b;
+            --font-ui: 'Space Grotesk', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        /* Paleta inspirada en la imagen de referencia: fondo oscuro profundo y contenedores en gris plomo */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f17; color: #e2e8f0; display: flex; height: 100vh; overflow: hidden; }
 
-        /* Sidebar de Historial */
-        aside { width: 300px; background-color: #121824; border-right: 1px solid #1e293b; display: flex; flex-direction: column; padding: 20px; }
-        aside h2 { font-size: 16px; color: #a78bfa; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .history-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
-        .history-card { background: #1a2234; border: 1px solid #283548; padding: 12px; border-radius: 8px; font-size: 13px; transition: border-color 0.2s; }
-        .history-card:hover { border-color: #a78bfa; }
-        .history-prompt { color: #94a3b8; margin-bottom: 6px; font-style: italic; }
-        .history-id { font-family: monospace; color: #38bdf8; font-size: 11px; word-break: break-all; margin-bottom: 8px; }
-        .history-link { color: #34d399; text-decoration: none; font-weight: bold; font-size: 12px; }
-        .history-link:hover { text-decoration: underline; }
-        .empty-history { color: #64748b; text-align: center; margin-top: 40px; font-size: 13px; }
+        body {
+            font-family: var(--font-ui);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(ellipse 900px 600px at 15% -8%, rgba(157, 92, 255, 0.26), transparent 60%),
+                radial-gradient(ellipse 700px 550px at 90% 10%, rgba(120, 70, 220, 0.17), transparent 55%),
+                radial-gradient(ellipse 900px 700px at 45% 115%, rgba(90, 50, 180, 0.15), transparent 60%),
+                radial-gradient(circle, rgba(241, 237, 251, 0.55) 1px, transparent 1px),
+                radial-gradient(circle, rgba(241, 237, 251, 0.35) 1px, transparent 1px);
+            background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
+            background-attachment: fixed, fixed, fixed, fixed, fixed;
+            background-position: 0 0, 0 0, 0 0, 0 0, 37px 61px;
+            background-size: 100% 100%, 100% 100%, 100% 100%, 140px 140px, 220px 220px;
+        }
 
-        /* Contenido Principal */
-        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px 40px; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #1e293b; padding-bottom: 20px; }
-        .brand h1 { color: #f8fafc; font-size: 22px; display: flex; align-items: center; gap: 10px; }
-        .brand p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
 
-        /* Barra Wallet Freighter con tonos idénticos a referencia */
-        .wallet-box { background: #121824; border: 1px solid #1e293b; padding: 10px 18px; border-radius: 8px; display: flex; align-items: center; gap: 15px; }
-        .wallet-status { font-family: monospace; color: #94a3b8; font-size: 13px; }
-        .wallet-btn { background-color: #7c3aed; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s; }
-        .wallet-btn:hover { background-color: #6d28d9; }
-
-        /* Tarjeta de Generación */
-        .card { background-color: #121824; border: 1px solid #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4); margin-bottom: 25px; }
-        label { display: block; margin-bottom: 10px; font-weight: 600; color: #cbd5e1; font-size: 14px; }
-        
-        .templates { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        .template-btn { background-color: #1a2234; color: #cbd5e1; border: 1px solid #283548; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-        .template-btn:hover { background-color: #283548; color: #fff; border-color: #7c3aed; }
-
-        textarea { width: 100%; height: 110px; padding: 14px; border-radius: 8px; border: 1px solid #283548; background-color: #0b0f17; color: #fff; font-size: 14px; resize: vertical; box-sizing: border-box; }
-        textarea:focus { outline: none; border-color: #7c3aed; }
-
-        .action-btn { background-color: #7c3aed; color: white; border: none; padding: 14px 20px; border-radius: 8px; font-size: 15px; font-weight: bold; width: 100%; cursor: pointer; transition: background 0.2s; margin-top: 15px; }
-        .action-btn:hover { background-color: #6d28d9; }
-        .action-btn:disabled { background-color: #334155; cursor: not-allowed; }
-
-        /* Loader */
-        #loading { display: none; text-align: center; margin-top: 20px; color: #a78bfa; font-weight: 500; font-size: 14px; }
-        .spinner { border: 3px solid rgba(255,255,255,0.1); width: 20px; height: 20px; border-radius: 50%; border-top-color: #7c3aed; animation: spin 1s infinite linear; display: inline-block; vertical-align: middle; margin-right: 8px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Resultados */
-        .result-box { background-color: #121824; border: 1px solid #059669; }
-        .result-box h3 { color: #34d399; margin-bottom: 12px; font-size: 16px; }
-        pre { background: #0b0f17; padding: 15px; border-radius: 6px; overflow-x: auto; color: #e2e8f0; font-size: 13px; max-height: 220px; border: 1px solid #1e293b; margin-top: 10px; }
-        a { color: #38bdf8; text-decoration: none; }
+        a { color: var(--code); text-decoration: none; }
         a:hover { text-decoration: underline; }
+
+        .icon { flex-shrink: 0; }
+
+        /* ---- Top bar ---- */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 28px; border-bottom: 1px solid var(--border);
+        }
+        .wordmark { display: flex; align-items: center; gap: 12px; }
+        .wordmark-icon {
+            width: 34px; height: 34px; border-radius: 8px; object-fit: cover;
+            box-shadow: 0 0 0 1px var(--border), 0 0 18px rgba(157, 92, 255, 0.35);
+        }
+        .wordmark-text { display: flex; flex-direction: column; line-height: 1.2; }
+        .wordmark-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+        .wordmark-tagline { font-size: 10.5px; color: var(--ink-muted); }
+
+        .wallet-pill {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 999px; padding: 6px 8px 6px 16px;
+        }
+        .wallet-pill .icon { color: var(--ink-muted); }
+        .wallet-status { font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
+        .wallet-btn {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+            color: #fff; border: none; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+            padding: 7px 14px; border-radius: 999px; cursor: pointer;
+            font-family: var(--font-ui); font-weight: 600; font-size: 12px;
+            box-shadow: 0 4px 14px -4px rgba(157, 92, 255, 0.55);
+            transition: box-shadow 0.18s ease, transform 0.18s ease;
+        }
+        .wallet-btn:hover { box-shadow: 0 6px 18px -3px rgba(157, 92, 255, 0.7); transform: translateY(-1px); }
+
+        /* ---- Selector de wallets ---- */
+        .wallet-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(5, 3, 12, 0.72);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 999; padding: 20px;
+        }
+        .wallet-modal {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 24px; width: 100%; max-width: 360px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 60px -20px rgba(157, 92, 255, 0.4);
+        }
+        .wallet-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .wallet-modal h3 { font-size: 16px; font-weight: 700; }
+        .wallet-modal-close {
+            background: none; border: none; color: var(--ink-muted); cursor: pointer;
+            padding: 4px; display: flex; border-radius: 6px; transition: color 0.15s ease;
+        }
+        .wallet-modal-close:hover { color: var(--ink); }
+        .wallet-modal-status { font-size: 12.5px; color: var(--ink-muted); min-height: 16px; margin-bottom: 12px; }
+        .wallet-modal-list { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
+        .wallet-option {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--surface-raised); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 14px; cursor: pointer;
+            font-family: var(--font-ui); font-size: 14px; color: var(--ink);
+            text-align: left; width: 100%; transition: border-color 0.18s ease;
+        }
+        .wallet-option:hover { border-color: var(--brand); }
+        .wallet-option-icon { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; }
+        .wallet-option-tag {
+            margin-left: auto; font-size: 10.5px; color: var(--ink-muted);
+            border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px;
+        }
+
+        /* ---- Layout ---- */
+        .layout { display: grid; grid-template-columns: 240px 1fr; align-items: start; max-width: 1600px; margin: 0 auto; }
+
+        .rail {
+            padding: 24px 20px; border-right: 1px solid var(--border);
+            position: sticky; top: 0; height: 100vh; overflow-y: auto;
+        }
+        .rail h2 {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; font-weight: 600; color: var(--ink-muted);
+            margin-bottom: 18px;
+        }
+        .rail h2 .icon { color: var(--brand); }
+
+        .timeline { position: relative; display: flex; flex-direction: column; gap: 2px; }
+        .timeline::before {
+            content: ''; position: absolute; left: 4px; top: 6px; bottom: 6px;
+            width: 1px; background: var(--border);
+        }
+        .timeline-empty { color: var(--ink-muted); font-size: 13px; padding-left: 20px; }
+
+        .timeline-node { position: relative; padding: 10px 0 10px 20px; }
+        .timeline-node::before {
+            content: ''; position: absolute; left: 0; top: 16px;
+            width: 9px; height: 9px; border-radius: 50%;
+            background: var(--surface); border: 2px solid var(--brand);
+        }
+        .timeline-prompt {
+            color: var(--ink); font-size: 12.5px; line-height: 1.4; margin-bottom: 4px;
+        }
+        .timeline-id {
+            font-family: var(--font-mono); color: var(--ink-muted);
+            font-size: 10.5px; word-break: break-all; margin-bottom: 5px;
+        }
+        .timeline-link {
+            display: inline-flex; align-items: center; gap: 4px;
+            color: var(--state-success); font-weight: 600; font-size: 11.5px;
+        }
+
+        main { padding: 32px 40px 64px; }
+
+        /* ---- Hero ---- */
+        .hero { position: relative; max-width: 640px; padding-top: 8px; margin-bottom: 40px; }
+        .hero-ring {
+            position: absolute; top: -70px; right: -120px; width: 340px; height: 340px;
+            border: 1px solid rgba(157, 92, 255, 0.35); border-radius: 50%;
+            transform: rotate(-18deg); pointer-events: none; z-index: -1;
+        }
+        .hero-ring::before, .hero-ring::after {
+            content: ''; position: absolute; inset: -34px; border-radius: 50%;
+            border: 1px solid rgba(157, 92, 255, 0.14);
+        }
+        .hero-ring::after { inset: -64px; border-color: rgba(157, 92, 255, 0.07); }
+        .hero h1 {
+            font-size: 40px; font-weight: 700; line-height: 1.08; letter-spacing: -0.015em;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--ink) 40%, var(--code) 100%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .hero p { font-size: 15px; color: var(--ink-muted); max-width: 46ch; line-height: 1.6; }
+
+        /* ---- Composer (sin card anidada) ---- */
+        .composer, .pipeline { max-width: 720px; }
+
+        .composer label {
+            display: block; font-size: 14px; font-weight: 600;
+            color: var(--ink); margin-bottom: 4px;
+        }
+        .composer-hint { font-size: 12.5px; color: var(--ink-muted); margin-bottom: 14px; }
+
+        .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .chip {
+            background: var(--surface); color: var(--ink-muted);
+            border: 1px solid var(--border); padding: 6px 13px;
+            border-radius: 999px; cursor: pointer; font-family: var(--font-ui);
+            font-size: 12.5px; transition: border-color 0.18s ease, color 0.18s ease;
+        }
+        .chip:hover { border-color: var(--brand); color: var(--ink); }
+
+        textarea {
+            width: 100%; height: 120px; padding: 16px;
+            border-radius: 10px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--ink);
+            font-family: var(--font-ui); font-size: 14.5px; line-height: 1.5;
+            resize: vertical; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        textarea:focus {
+            outline: none; border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(157, 92, 255, 0.16);
+        }
+        textarea::placeholder { color: var(--ink-muted); }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+            color: #fff; border: none; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+            padding: 13px 20px; border-radius: 10px; font-family: var(--font-ui);
+            font-size: 14.5px; font-weight: 600; width: 100%; cursor: pointer;
+            box-shadow: 0 8px 24px -8px rgba(157, 92, 255, 0.6);
+            transition: box-shadow 0.18s ease, transform 0.18s ease; margin-top: 14px;
+        }
+        .primary-btn:hover { box-shadow: 0 10px 30px -6px rgba(157, 92, 255, 0.75); transform: translateY(-1px); }
+        .primary-btn:disabled { background: var(--surface-raised); color: var(--ink-muted); box-shadow: none; transform: none; cursor: not-allowed; }
+
+        /* ---- Pipeline stepper ---- */
+        .pipeline { display: none; margin-top: 28px; }
+        .pipeline-track { display: flex; align-items: flex-start; }
+        .pipeline-node { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+        .pipeline-node:not(:last-child)::after {
+            content: ''; position: absolute; top: 9px; left: 50%; width: 100%;
+            height: 1px; background: var(--border); z-index: 0;
+        }
+        .pipeline-node.done:not(:last-child)::after { background: var(--state-success); }
+        .node-dot {
+            width: 19px; height: 19px; border-radius: 50%;
+            background: var(--surface); border: 2px solid var(--border);
+            z-index: 1; display: flex; align-items: center; justify-content: center;
+            transition: border-color 0.25s ease, background 0.25s ease;
+        }
+        .node-label {
+            margin-top: 8px; font-size: 11.5px; color: var(--ink-muted); text-align: center;
+        }
+        .pipeline-node.active .node-dot {
+            border-color: var(--brand); box-shadow: 0 0 0 4px rgba(157, 92, 255, 0.18);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        .pipeline-node.active .node-label { color: var(--ink); }
+        .pipeline-node.done .node-dot { border-color: var(--state-success); background: var(--state-success-dim); }
+        .pipeline-node.done .node-dot svg { color: var(--state-success); }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(157, 92, 255, 0.18); }
+            50% { box-shadow: 0 0 0 7px rgba(157, 92, 255, 0.09); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .pipeline-node.active .node-dot { animation: none; }
+        }
+
+        /* ---- Receipt (resultado) ---- */
+        .receipt {
+            margin-top: 32px; border: 1px dashed var(--border);
+            border-radius: 12px; padding: 24px; background: var(--surface);
+            box-shadow: 0 20px 50px -24px rgba(157, 92, 255, 0.35), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+        }
+        .receipt-title {
+            display: flex; align-items: center; gap: 9px;
+            font-size: 16px; font-weight: 600; color: var(--state-success);
+            margin-bottom: 16px;
+        }
+        .receipt-row { font-size: 13.5px; margin-bottom: 8px; color: var(--ink-muted); }
+        .receipt-row strong { color: var(--ink); font-weight: 600; }
+        .receipt-row .mono { font-family: var(--font-mono); color: var(--code); }
+        .external-link { display: inline-flex; align-items: center; gap: 4px; }
+        .owner-line { margin-top: 4px; font-size: 13px; color: var(--ink-muted); }
+
+        details { margin-top: 16px; }
+        summary {
+            cursor: pointer; color: var(--ink); font-weight: 600; font-size: 13px;
+            list-style: none;
+        }
+        summary::-webkit-details-marker { display: none; }
+        pre {
+            background: var(--bg); padding: 15px; border-radius: 8px;
+            overflow-x: auto; color: var(--ink); font-size: 12.5px;
+            font-family: var(--font-mono); max-height: 240px;
+            border: 1px solid var(--border); margin-top: 10px;
+        }
+
+        .receipt-section { margin-top: 22px; }
+        .receipt-section h3 {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 12px;
+        }
+        .receipt-section h3 .icon { color: var(--brand); }
+
+        .findings { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+        .finding { padding: 10px 13px; border-radius: 8px; font-size: 13px; border-left: 3px solid var(--ink-muted); background: var(--surface-raised); }
+        .finding.high { border-left-color: var(--state-error); }
+        .finding.medium { border-left-color: var(--brand); }
+        .finding.low { border-left-color: var(--ink-muted); }
+        .finding .sev { font-weight: 600; font-size: 11px; margin-right: 6px; }
+        .finding.high .sev { color: var(--state-error); }
+        .finding.medium .sev { color: var(--brand); }
+        .finding.low .sev { color: var(--ink-muted); }
+        .findings-empty { color: var(--ink-muted); font-size: 13px; }
+
+        .functions-panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .function-card {
+            background: var(--surface-raised); border: 1px solid var(--border);
+            border-radius: 10px; padding: 14px; transition: border-color 0.18s ease, transform 0.18s ease;
+        }
+        .function-card:hover { border-color: rgba(157, 92, 255, 0.4); transform: translateY(-1px); }
+        .function-card h4 { color: var(--code); font-size: 13.5px; margin-bottom: 9px; font-family: var(--font-mono); font-weight: 500; }
+        .function-card input {
+            width: 100%; margin-bottom: 8px; padding: 8px 10px; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--bg); color: var(--ink);
+            font-family: var(--font-mono); font-size: 12.5px;
+        }
+        .function-card input:focus { outline: none; border-color: var(--brand); }
+        .arg-label { font-size: 11px; color: var(--ink-muted); margin-bottom: 4px; display: block; }
+        .invoke-btn {
+            background: var(--state-success-dim); color: var(--state-success); border: 1px solid var(--state-success);
+            padding: 7px 14px; border-radius: 7px; cursor: pointer; font-family: var(--font-ui);
+            font-size: 12.5px; font-weight: 600; transition: background 0.18s ease;
+        }
+        .invoke-btn:hover { background: var(--state-success); color: #08150f; }
+        .invoke-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .invoke-result { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--code); word-break: break-all; }
+
+        /* ---- Pantallas grandes: más aire, más columnas de datos ---- */
+        @media (min-width: 1200px) {
+            .layout { grid-template-columns: 280px 1fr; }
+            main { padding: 40px 56px 80px; }
+        }
+
+        /* ---- Tablet / rail arriba del composer ---- */
+        @media (max-width: 820px) {
+            .layout { grid-template-columns: 1fr; }
+            .rail { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+            .timeline { flex-direction: row; overflow-x: auto; gap: 14px; padding-bottom: 4px; }
+            .timeline::before { display: none; }
+            .timeline-node { flex: 0 0 220px; padding-left: 16px; }
+            main { padding: 24px 20px 48px; }
+        }
+
+        /* ---- Móvil chico: compactar y asegurar objetivos táctiles ---- */
+        @media (max-width: 480px) {
+            .topbar { padding: 12px 16px; }
+            .wordmark-tagline { display: none; }
+            .wallet-pill { padding: 5px 6px 5px 10px; gap: 8px; }
+            main { padding: 18px 14px 40px; }
+            .receipt { padding: 18px; }
+            .chip, .wallet-btn, .invoke-btn {
+                padding-top: 11px; padding-bottom: 11px; min-height: 40px;
+            }
+            .primary-btn { min-height: 48px; }
+            .node-label { font-size: 10px; }
+            .hero { margin-bottom: 28px; }
+            .hero h1 { font-size: 28px; }
+            .hero-ring { width: 220px; height: 220px; top: -50px; right: -90px; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR DE HISTORIAL -->
-    <aside>
-        <h2>📜 Historial de Despliegues</h2>
-        <div class="history-container" id="historyList">
-            <div class="empty-history" id="emptyHistory">No hay contratos registrados.</div>
-        </div>
-    </aside>
-
-    <!-- PANEL PRINCIPAL -->
-    <main>
-        <header>
-            <div class="brand">
-                <h1>⚡ Prompt2Contract</h1>
-                <p>Automatización de Smart Contracts con Soroban & IA</p>
+    <header class="topbar">
+        <div class="wordmark">
+            <img src="brevik-icon.jpg" alt="Brevik" class="wordmark-icon">
+            <div class="wordmark-text">
+                <span class="wordmark-name">Brevik</span>
+                <span class="wordmark-tagline">De lo dicho a lo hecho, un solo clic</span>
             </div>
-            <div class="wallet-box">
-                <div>
-                    <span style="display: block; font-size: 10px; color: #64748b; font-weight: bold;">WALLET FREIGHTER</span>
-                    <span id="walletStatus" class="wallet-status">No conectada</span>
+        </div>
+        <div class="wallet-pill">
+            <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span id="walletStatus" class="wallet-status">Wallet no conectada</span>
+            <button id="connectWalletBtn" class="wallet-btn" onclick="conectarWallet()">Conectar</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="rail">
+            <h2>
+                <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
+                Historial
+            </h2>
+            <div class="timeline" id="historyList">
+                <p class="timeline-empty" id="emptyHistory">Aún no hay contratos desplegados.</p>
+            </div>
+        </aside>
+
+        <main>
+            <section class="hero">
+                <div class="hero-ring" aria-hidden="true"></div>
+                <h1>De lo dicho a lo hecho,<br>un solo clic.</h1>
+                <p>Escribe qué debe hacer tu contrato. Brevik lo escribe en Rust, lo prueba,
+                    lo audita y lo despliega en Stellar testnet — todo en la misma corrida.</p>
+            </section>
+
+            <section class="composer">
+                <label for="promptInput">Describe la lógica de tu contrato</label>
+                <p class="composer-hint" id="composerHint">Conecta tu wallet para que tu dirección quede como owner del contrato al desplegarlo.</p>
+
+                <div class="chips">
+                    <button class="chip" onclick="setTemplate('hola')">Hola mundo</button>
+                    <button class="chip" onclick="setTemplate('votacion')">Votación DAO</button>
+                    <button class="chip" onclick="setTemplate('token')">Faucet token</button>
                 </div>
-                <button id="connectWalletBtn" class="wallet-btn" onclick="conectarFreighter()">Conectar</button>
-            </div>
-        </header>
 
-        <div class="card">
-            <label for="promptInput">Escribe la lógica de tu contrato inteligente:</label>
-            
-            <div class="templates">
-                <button class="template-btn" onclick="setTemplate('hola')">👋 Hola Mundo</button>
-                <button class="template-btn" onclick="setTemplate('votacion')">🗳️ Votación DAO</button>
-                <button class="template-btn" onclick="setTemplate('token')">🪙 Faucet Token</button>
-            </div>
+                <textarea id="promptInput" placeholder="Ej. Genera un contrato que permita registrar propuestas de votación..."></textarea>
 
-            <textarea id="promptInput" placeholder="Ej. Genera un contrato que permita registrar propuestas de votación..."></textarea>
-            
-            <button id="deployBtn" class="action-btn" onclick="generarYDesplegar()">Generar y Desplegar a Testnet</button>
+                <button id="deployBtn" class="primary-btn" onclick="generarYDesplegar()">Generar y desplegar a testnet</button>
+            </section>
 
-            <div id="loading">
-                <div class="spinner"></div><span id="loadingText">Procesando solicitud...</span>
-            </div>
-        </div>
+            <section class="pipeline" id="pipeline">
+                <span id="loadingText" class="sr-only" aria-live="polite">Listo.</span>
+                <div class="pipeline-track" id="pipelineTrack">
+                    <div class="pipeline-node" data-stage="0">
+                        <span class="node-dot"></span>
+                        <span class="node-label">Prompt</span>
+                    </div>
+                    <div class="pipeline-node" data-stage="1">
+                        <span class="node-dot"></span>
+                        <span class="node-label">Tests</span>
+                    </div>
+                    <div class="pipeline-node" data-stage="2">
+                        <span class="node-dot"></span>
+                        <span class="node-label">Build</span>
+                    </div>
+                    <div class="pipeline-node" data-stage="3">
+                        <span class="node-dot"></span>
+                        <span class="node-label">Auditoría</span>
+                    </div>
+                    <div class="pipeline-node" data-stage="4">
+                        <span class="node-dot"></span>
+                        <span class="node-label">Deploy</span>
+                    </div>
+                </div>
+            </section>
 
-        <!-- Resultados del despliegue -->
-        <div id="resultContainer" style="display:none;" class="card result-box">
-            <h3>✨ ¡Contrato Desplegado con Éxito!</h3>
-            <p style="font-size: 14px;"><strong>Contract ID:</strong> <span id="contractIdText" style="font-family: monospace; color: #38bdf8;"></span></p>
-            <p style="margin-top: 8px; font-size: 14px;"><strong>Explorador Testnet:</strong> <a id="explorerLink" href="#" target="_blank">Ver en Stellar Expert ↗</a></p>
-            
-            <details style="margin-top: 15px;">
-                <summary style="cursor: pointer; color: #cbd5e1; font-weight: bold; font-size: 13px;">Ver Código Rust Generado</summary>
-                <pre><code id="rustCodeText"></code></pre>
-            </details>
-        </div>
-    </main>
+            <section class="receipt" id="resultContainer" style="display:none;">
+                <div class="receipt-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+                    Contrato desplegado
+                </div>
+                <p class="receipt-row"><strong>Contract ID:</strong> <span id="contractIdText" class="mono"></span></p>
+                <p class="receipt-row"><strong>Explorador testnet:</strong>
+                    <a id="explorerLink" href="#" target="_blank" class="external-link">
+                        Ver en Stellar Expert
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                </p>
+                <p class="owner-line" id="ownerLine" style="display:none;"></p>
 
-    <!-- Script Freighter API oficial -->
+                <details>
+                    <summary>Ver código Rust generado</summary>
+                    <pre><code id="rustCodeText"></code></pre>
+                </details>
+
+                <div class="receipt-section">
+                    <h3>
+                        <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Auditoría automática de seguridad
+                    </h3>
+                    <div class="findings" id="findingsList"></div>
+                </div>
+
+                <div class="receipt-section">
+                    <h3>
+                        <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 18a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8 15h8"/></svg>
+                        Probar funciones del contrato
+                    </h3>
+                    <div class="functions-panel" id="functionsPanel"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- El paquete de Freighter que trae el wallet kit no carga desde esm.sh (su bundle
+         UMD confunde la detección de named exports del CDN); usamos en su lugar el
+         build directo de Freighter y un módulo propio para el kit, ver más abajo. -->
     <script src="https://unpkg.com/@stellar/freighter-api/dist/index.min.js"></script>
-    <script>
+    <script type="module">
+        // Stellar Wallets Kit: un solo selector para varias wallets, sin integrar cada
+        // una a mano. OJO: no se puede importar el paquete "modules/utils" (el que trae
+        // defaultModules()) porque ese archivo importa a su vez "modules/freighter",
+        // cuyo bundle rompe la carga en esm.sh (ver nota de arriba) — un solo import roto
+        // en ese barrel tumba TODO el árbol de módulos, así que se importa cada wallet
+        // por separado, sin pasar por ese archivo.
+        import { StellarWalletsKit } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/sdk";
+        import { Networks, ModuleType } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/types";
+        import { AlbedoModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/albedo";
+        import { RabetModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/rabet";
+        import { LobstrModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/lobstr";
+        import { HanaModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/hana";
+        import { KleverModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/klever";
+        import { OneKeyModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/onekey";
+        import { BitgetModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/bitget";
+        import { MetaMaskModule } from "https://esm.sh/jsr/@creit-tech/stellar-wallets-kit/modules/metamask";
+
+        class FreighterDirectModule {
+            moduleType = ModuleType.HOT_WALLET;
+            productId = "freighter";
+            productName = "Freighter";
+            productUrl = "https://www.freighter.app/";
+            productIcon = "https://stellar.creit.tech/wallet-icons/freighter.png";
+
+            isAvailable() {
+                return Promise.resolve(typeof window.freighterApi !== 'undefined');
+            }
+            async getAddress() {
+                const { address } = await window.freighterApi.requestAccess();
+                return { address };
+            }
+            async signTransaction(xdr, opts) {
+                const result = await window.freighterApi.signTransaction(xdr, {
+                    networkPassphrase: opts?.networkPassphrase,
+                    address: opts?.address,
+                });
+                return { signedTxXdr: result.signedTxXdr };
+            }
+            async signAuthEntry(entryXdr, opts) {
+                const result = await window.freighterApi.signAuthEntry(entryXdr, {
+                    networkPassphrase: opts?.networkPassphrase,
+                    address: opts?.address,
+                });
+                return { signedAuthEntry: result.signedAuthEntry };
+            }
+            async signMessage(message, opts) {
+                const result = await window.freighterApi.signMessage(message, {
+                    networkPassphrase: opts?.networkPassphrase,
+                    address: opts?.address,
+                });
+                return { signedMessage: result.signedMessage };
+            }
+            async getNetwork() {
+                const result = await window.freighterApi.getNetwork();
+                return { network: result.network, networkPassphrase: result.networkPassphrase };
+            }
+        }
+
+        const walletModules = [
+            new FreighterDirectModule(),
+            new AlbedoModule(),
+            new RabetModule(),
+            new LobstrModule(),
+            new HanaModule(),
+            new KleverModule(),
+            new OneKeyModule(),
+            new BitgetModule(),
+            new MetaMaskModule(),
+        ];
+
+        StellarWalletsKit.init({
+            modules: walletModules,
+            network: Networks.TESTNET,
+        });
+
+        // El backend puede vivir en otro origen (Render/Railway) al desplegar el frontend
+        // por separado. Se puede sobreescribir con ?api=https://tu-backend.onrender.com
+        const params = new URLSearchParams(window.location.search);
+        const API_BASE = params.get('api') || 'http://127.0.0.1:8000';
+
+        let walletPublicKey = null;
+
         const templates = {
             hola: "Genera un contrato básico en Soroban que reciba un nombre y devuelva un saludo personalizado.",
             votacion: "Genera un contrato de votación descentralizada donde se puedan registrar propuestas con un contador de votos, asegurando que una dirección no vote dos veces por la misma propuesta.",
@@ -132,42 +577,143 @@
             document.getElementById('promptInput').value = templates[key];
         }
 
-        async function conectarFreighter() {
+        function aplicarWalletConectada(address) {
+            walletPublicKey = address;
+            const shortKey = address.substring(0, 6) + "..." + address.substring(address.length - 4);
+
+            document.getElementById('walletStatus').innerText = shortKey;
+            document.getElementById('walletStatus').style.color = "var(--state-success)";
+
+            const btn = document.getElementById('connectWalletBtn');
+            btn.innerText = "Conectada";
+
+            const hint = document.getElementById('composerHint');
+            hint.textContent = `Al desplegar, ${shortKey} quedará como owner del contrato.`;
+            hint.style.color = "var(--state-success)";
+        }
+
+        async function elegirWallet(mod, statusEl) {
+            statusEl.textContent = `Conectando con ${mod.productName}...`;
             try {
-                if (typeof window.freighterApi === 'undefined') {
-                    alert("No se detectó la extensión de Freighter.");
-                    window.open("https://www.freighter.app/", "_blank");
-                    return;
-                }
-
-                const isConnected = await window.freighterApi.isConnected();
-                if (!isConnected) {
-                    alert("Por favor desbloquea tu extensión de Freighter.");
-                    return;
-                }
-
-                const publicKey = await window.freighterApi.requestAccess();
-                if (publicKey) {
-                    const shortKey = publicKey.substring(0, 6) + "..." + publicKey.substring(publicKey.length - 4);
-                    document.getElementById('walletStatus').innerText = shortKey;
-                    document.getElementById('walletStatus').style.color = "#34d399";
-                    
-                    const btn = document.getElementById('connectWalletBtn');
-                    btn.innerText = "Conectado";
-                    btn.style.backgroundColor = "#059669";
-                }
+                StellarWalletsKit.setWallet(mod.productId);
+                const { address } = await StellarWalletsKit.fetchAddress();
+                cerrarSelectorWallet();
+                aplicarWalletConectada(address);
             } catch (error) {
                 console.error("Error al conectar wallet:", error);
-                alert("Se denegó el acceso a la billetera.");
+                const mensaje = error?.message || '';
+                if (mod.productId === 'metamask' && /scope/i.test(mensaje)) {
+                    // El Snap de Stellar de MetaMask (@metamask/connect-stellar) hoy solo
+                    // soporta mainnet ("stellar:pubnet"), no tiene scope de testnet — Brevik
+                    // despliega a testnet, así que esta combinación no puede funcionar todavía.
+                    // No es un error de configuración nuestro, es una limitación actual del Snap.
+                    statusEl.textContent = 'El Snap de Stellar de MetaMask todavía no soporta testnet (solo mainnet) — no se puede usar con Brevik por ahora. Prueba con Freighter, Albedo u otra wallet.';
+                } else {
+                    statusEl.textContent = `No se pudo conectar con ${mod.productName}: ${mensaje || 'intenta de nuevo.'}`;
+                }
             }
         }
 
+        function cerrarSelectorWallet() {
+            const backdrop = document.getElementById('walletModalBackdrop');
+            if (backdrop) backdrop.remove();
+        }
+
+        async function conectarWallet() {
+            cerrarSelectorWallet();
+
+            const backdrop = document.createElement('div');
+            backdrop.id = 'walletModalBackdrop';
+            backdrop.className = 'wallet-modal-backdrop';
+            backdrop.onclick = (e) => { if (e.target === backdrop) cerrarSelectorWallet(); };
+
+            const modal = document.createElement('div');
+            modal.className = 'wallet-modal';
+
+            const header = document.createElement('div');
+            header.className = 'wallet-modal-header';
+            const title = document.createElement('h3');
+            title.textContent = 'Conecta tu wallet';
+            header.appendChild(title);
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'wallet-modal-close';
+            closeBtn.setAttribute('aria-label', 'Cerrar');
+            closeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+            closeBtn.onclick = cerrarSelectorWallet;
+            header.appendChild(closeBtn);
+            modal.appendChild(header);
+
+            const statusEl = document.createElement('p');
+            statusEl.className = 'wallet-modal-status';
+            modal.appendChild(statusEl);
+
+            const list = document.createElement('div');
+            list.className = 'wallet-modal-list';
+            modal.appendChild(list);
+
+            backdrop.appendChild(modal);
+            document.body.appendChild(backdrop);
+
+            const disponibilidad = await Promise.all(
+                walletModules.map(async (mod) => {
+                    try { return await mod.isAvailable(); } catch (e) { return false; }
+                })
+            );
+
+            walletModules.forEach((mod, i) => {
+                const option = document.createElement('button');
+                option.className = 'wallet-option';
+                option.type = 'button';
+
+                const icon = document.createElement('img');
+                icon.src = mod.productIcon;
+                icon.alt = '';
+                icon.className = 'wallet-option-icon';
+                option.appendChild(icon);
+
+                const name = document.createElement('span');
+                name.textContent = mod.productName;
+                option.appendChild(name);
+
+                if (!disponibilidad[i]) {
+                    const tag = document.createElement('span');
+                    tag.className = 'wallet-option-tag';
+                    tag.textContent = 'no instalada';
+                    option.appendChild(tag);
+                }
+
+                option.onclick = () => elegirWallet(mod, statusEl);
+                list.appendChild(option);
+            });
+        }
+
         const steps = [
-            "🤖 Generando código Rust con IA...",
-            "💾 Guardando y configurando archivo lib.rs...",
-            "⚙️ Compilando binario WASM optimizado...",
-            "🚀 Desplegando en Stellar Testnet..."
+            "Generando código Rust con IA...",
+            "Corriendo tests y autorreparando si hace falta...",
+            "Compilando binario WASM optimizado...",
+            "Auditando seguridad del contrato...",
+            "Desplegando en Stellar testnet..."
         ];
+
+        function setPipelineStage(stageIndex) {
+            const nodes = document.querySelectorAll('#pipelineTrack .pipeline-node');
+            nodes.forEach((node, i) => {
+                node.classList.toggle('done', i < stageIndex);
+                node.classList.toggle('active', i === stageIndex);
+                const dot = node.querySelector('.node-dot');
+                dot.innerHTML = i < stageIndex
+                    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                    : '';
+            });
+        }
+
+        function resetPipeline() {
+            document.querySelectorAll('#pipelineTrack .pipeline-node').forEach(node => {
+                node.classList.remove('done', 'active');
+                node.querySelector('.node-dot').innerHTML = '';
+            });
+        }
 
         async function generarYDesplegar() {
             const prompt = document.getElementById('promptInput').value.trim();
@@ -177,50 +723,157 @@
             }
 
             const btn = document.getElementById('deployBtn');
-            const loading = document.getElementById('loading');
+            const pipeline = document.getElementById('pipeline');
             const loadingText = document.getElementById('loadingText');
             const resultContainer = document.getElementById('resultContainer');
-            
+
             btn.disabled = true;
-            loading.style.display = 'block';
+            pipeline.style.display = 'block';
             resultContainer.style.display = 'none';
+            resetPipeline();
 
             let stepIdx = 0;
+            setPipelineStage(stepIdx);
+            loadingText.textContent = steps[stepIdx];
             const interval = setInterval(() => {
-                stepIdx = (stepIdx + 1) % steps.length;
-                loadingText.innerText = steps[stepIdx];
+                stepIdx = Math.min(stepIdx + 1, steps.length - 1);
+                setPipelineStage(stepIdx);
+                loadingText.textContent = steps[stepIdx];
             }, 3000);
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/generate-and-deploy', {
+                const response = await fetch(`${API_BASE}/generate-and-deploy`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: prompt })
+                    body: JSON.stringify({ prompt: prompt, owner_address: walletPublicKey })
                 });
 
                 const data = await response.json();
                 clearInterval(interval);
-                loading.style.display = 'none';
                 btn.disabled = false;
 
                 if (response.ok && data.status === "success") {
+                    setPipelineStage(steps.length);
+                    loadingText.textContent = "Contrato desplegado.";
+
                     document.getElementById('contractIdText').innerText = data.contract_id;
                     document.getElementById('explorerLink').href = data.explorer_url;
                     document.getElementById('rustCodeText').innerText = data.rust_code;
-                    resultContainer.style.display = 'block';
 
+                    const ownerLine = document.getElementById('ownerLine');
+                    if (data.owner_address && data.owner_applied) {
+                        ownerLine.style.display = 'block';
+                        ownerLine.style.color = 'var(--state-success)';
+                        ownerLine.innerText = `Tu wallet (${data.owner_address}) quedó registrada como admin del contrato — se llamó "initialize" automáticamente al desplegar.`;
+                    } else if (data.owner_address) {
+                        ownerLine.style.display = 'block';
+                        ownerLine.style.color = 'var(--ink-muted)';
+                        ownerLine.innerText = `Owner sugerido (tu wallet): ${data.owner_address}. Esta función "initialize" necesita otros datos además de una address, así que complétala y ejecútala abajo para dejar tu wallet como admin.`;
+                    } else {
+                        ownerLine.style.display = 'none';
+                    }
+
+                    renderFindings(data.security_findings || []);
+                    renderFunctions(data.contract_id, data.functions || []);
+
+                    resultContainer.style.display = 'block';
                     agregarAlHistorial(data.contract_id, data.explorer_url, prompt);
                 } else {
-                    alert("Error en el proceso: " + (data.detail || "Error desconocido"));
+                    pipeline.style.display = 'none';
+                    alert("Error en el proceso: " + (data.detail?.error || data.detail || "Error desconocido"));
                 }
 
             } catch (err) {
                 clearInterval(interval);
-                loading.style.display = 'none';
                 btn.disabled = false;
-                alert("No se pudo conectar con el servidor local de FastAPI.");
+                pipeline.style.display = 'none';
+                alert("No se pudo conectar con el backend en " + API_BASE);
                 console.error(err);
             }
+        }
+
+        function renderFindings(findings) {
+            const container = document.getElementById('findingsList');
+            container.innerHTML = '';
+            if (findings.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'findings-empty';
+                p.textContent = 'No se detectaron hallazgos.';
+                container.appendChild(p);
+                return;
+            }
+            findings.forEach(f => {
+                const div = document.createElement('div');
+                const severity = (f.severity || 'low').toLowerCase();
+                div.className = `finding ${severity}`;
+                const sev = document.createElement('span');
+                sev.className = 'sev';
+                sev.textContent = severity;
+                div.appendChild(sev);
+                div.appendChild(document.createTextNode(`${f.description || ''} ${f.location ? '(' + f.location + ')' : ''}`));
+                container.appendChild(div);
+            });
+        }
+
+        function renderFunctions(contractId, functions) {
+            const panel = document.getElementById('functionsPanel');
+            panel.innerHTML = '';
+            functions.forEach(fn => {
+                const card = document.createElement('div');
+                card.className = 'function-card';
+
+                const title = document.createElement('h4');
+                title.textContent = fn.name + '(' + (fn.args || []).map(a => a.name).join(', ') + ')';
+                card.appendChild(title);
+
+                const inputs = {};
+                (fn.args || []).forEach(arg => {
+                    const label = document.createElement('span');
+                    label.className = 'arg-label';
+                    label.textContent = `${arg.name} (${arg.type})`;
+                    card.appendChild(label);
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = arg.type;
+                    if (arg.type === 'address' && walletPublicKey) {
+                        input.value = walletPublicKey;
+                    }
+                    card.appendChild(input);
+                    inputs[arg.name] = input;
+                });
+
+                const invokeBtn = document.createElement('button');
+                invokeBtn.className = 'invoke-btn';
+                invokeBtn.textContent = 'Ejecutar';
+
+                const resultLine = document.createElement('div');
+                resultLine.className = 'invoke-result';
+
+                invokeBtn.onclick = async () => {
+                    invokeBtn.disabled = true;
+                    resultLine.textContent = 'Ejecutando...';
+                    const args = {};
+                    Object.entries(inputs).forEach(([name, input]) => { args[name] = input.value; });
+                    try {
+                        const resp = await fetch(`${API_BASE}/invoke`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contract_id: contractId, function: fn.name, args })
+                        });
+                        const data = await resp.json();
+                        resultLine.textContent = resp.ok ? `Resultado: ${data.result}` : `Error: ${data.detail}`;
+                    } catch (err) {
+                        resultLine.textContent = 'Error de red al invocar.';
+                    } finally {
+                        invokeBtn.disabled = false;
+                    }
+                };
+
+                card.appendChild(invokeBtn);
+                card.appendChild(resultLine);
+                panel.appendChild(card);
+            });
         }
 
         function agregarAlHistorial(id, url, promptText) {
@@ -229,16 +882,35 @@
             if (emptyMsg) emptyMsg.remove();
 
             const shortPrompt = promptText.length > 40 ? promptText.substring(0, 40) + "..." : promptText;
-            
-            const card = document.createElement('div');
-            card.className = 'history-card';
-            card.innerHTML = `
-                <div class="history-prompt">"${shortPrompt}"</div>
-                <div class="history-id">${id}</div>
-                <a href="${url}" target="_blank" class="history-link">Ver en Explorador ↗</a>
-            `;
-            historyList.prepend(card);
+
+            const node = document.createElement('div');
+            node.className = 'timeline-node';
+
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'timeline-prompt';
+            promptDiv.textContent = `"${shortPrompt}"`;
+
+            const idDiv = document.createElement('div');
+            idDiv.className = 'timeline-id';
+            idDiv.textContent = id;
+
+            const link = document.createElement('a');
+            link.className = 'timeline-link';
+            link.target = '_blank';
+            link.setAttribute('href', url);
+            link.innerHTML = 'Ver en explorador <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+            node.appendChild(promptDiv);
+            node.appendChild(idDiv);
+            node.appendChild(link);
+            historyList.prepend(node);
         }
+
+        // El script es un módulo (para poder usar `import`), así que estas funciones
+        // no son globales por defecto: se exponen para los atributos onclick del HTML.
+        window.setTemplate = setTemplate;
+        window.conectarWallet = conectarWallet;
+        window.generarYDesplegar = generarYDesplegar;
     </script>
 </body>
 </html>

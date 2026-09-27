@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+target
+contracts/gen_*
+.env
+*.md

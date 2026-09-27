@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: prompt2contract-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: standard
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: STELLAR_SOURCE_IDENTITY
+        value: alice
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "5"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "600"
+    disk:
+      name: stellar-identity
+      mountPath: /root/.config/stellar
+      sizeGB: 1

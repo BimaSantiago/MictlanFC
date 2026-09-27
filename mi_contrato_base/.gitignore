@@ -4,3 +4,15 @@ target
 # Local settings
 .soroban
 .stellar
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets
+.env
+
+# Contratos generados por request (aislados, no se commitean)
+contracts/gen_*
+

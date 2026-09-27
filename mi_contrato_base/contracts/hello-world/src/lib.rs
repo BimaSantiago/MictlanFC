@@ -1,6 +1,8 @@
 #![no_std]
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
 
+mod test;
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -25,6 +27,8 @@ pub struct TokenContract;
 #[contractimpl]
 impl TokenContract {
     pub fn initialize(env: Env, admin: Address, faucet_amount: i128) -> Result<(), Error> {
+        admin.require_auth();
+
         if faucet_amount <= 0 {
             return Err(Error::InvalidAmount);
         }

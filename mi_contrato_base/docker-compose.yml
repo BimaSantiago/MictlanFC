@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # La identidad 'alice' se genera y financia la primera vez que arranca el
+      # contenedor; con este volumen sobrevive a docker compose down/up en vez
+      # de perderse y regenerarse (y perder fondos) en cada reinicio.
+      - stellar-identity:/root/.config/stellar
+
+  frontend:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      # Montamos archivos puntuales, no el directorio completo: éste también
+      # tiene .env con la API key y no queremos servirlo por accidente.
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./brevik-icon.jpg:/usr/share/nginx/html/brevik-icon.jpg:ro
+    depends_on:
+      - backend
+
+volumes:
+  stellar-identity:
