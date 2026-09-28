@@ -560,10 +560,13 @@
             network: Networks.TESTNET,
         });
 
-        // El backend puede vivir en otro origen (Render/Railway) al desplegar el frontend
-        // por separado. Se puede sobreescribir con ?api=https://tu-backend.onrender.com
+        // En local usamos el backend de FastAPI corriendo en 127.0.0.1:8000; en
+        // producción (servido desde Render) usamos el backend desplegado. Se puede
+        // sobreescribir siempre con ?api=https://tu-backend.onrender.com
         const params = new URLSearchParams(window.location.search);
-        const API_BASE = params.get('api') || 'http://127.0.0.1:8000';
+        const isLocal = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+        const API_BASE = params.get('api')
+            || (isLocal ? 'http://127.0.0.1:8000' : 'https://prompt2contract-backend.onrender.com');
 
         let walletPublicKey = null;
 
