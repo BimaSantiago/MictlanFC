@@ -2,6 +2,7 @@ services:
   - type: web
     name: prompt2contract-backend
     runtime: docker
+    rootDir: mi_contrato_base
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
@@ -20,6 +21,7 @@ services:
   - type: web
     name: prompt2contract-frontend
     runtime: static
+    rootDir: mi_contrato_base
     staticPublishPath: .
     buildFilter:
       paths:
