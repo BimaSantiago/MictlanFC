@@ -482,8 +482,11 @@
 
     <!-- El paquete de Freighter que trae el wallet kit no carga desde esm.sh (su bundle
          UMD confunde la detección de named exports del CDN); usamos en su lugar el
-         build directo de Freighter y un módulo propio para el kit, ver más abajo. -->
-    <script src="https://unpkg.com/@stellar/freighter-api/dist/index.min.js"></script>
+         build directo de Freighter y un módulo propio para el kit, ver más abajo.
+         Se usa jsdelivr con versión fija (no unpkg sin versión): unpkg resuelve la
+         versión con un redirect que a veces devuelve 503 o se queda colgado, dejando
+         window.freighterApi indefinido y la conexión falla con "no instalada". -->
+    <script src="https://cdn.jsdelivr.net/npm/@stellar/freighter-api@6.0.1/dist/index.min.js"></script>
     <script type="module">
         // Stellar Wallets Kit: un solo selector para varias wallets, sin integrar cada
         // una a mano. OJO: no se puede importar el paquete "modules/utils" (el que trae
@@ -593,6 +596,74 @@
             const hint = document.getElementById('composerHint');
             hint.textContent = `Al desplegar, ${shortKey} quedará como owner del contrato.`;
             hint.style.color = "var(--state-success)";
+
+            renderHistorialWallet(address);
+        }
+
+        // Historial persistido en localStorage por dirección de wallet. Los despliegues
+        // hechos sin wallet conectada (sesión "genérica") no se guardan: solo viven en
+        // el DOM mientras dura la pestaña, igual que antes.
+        function claveHistorial(address) {
+            return `brevik_history_${address}`;
+        }
+
+        function leerHistorialWallet(address) {
+            if (!address) return [];
+            try {
+                return JSON.parse(localStorage.getItem(claveHistorial(address)) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function guardarHistorialWallet(address, items) {
+            try {
+                localStorage.setItem(claveHistorial(address), JSON.stringify(items.slice(0, 50)));
+            } catch (e) {
+                console.error('No se pudo guardar el historial en localStorage:', e);
+            }
+        }
+
+        function crearNodoHistorial(entry) {
+            const shortPrompt = entry.prompt.length > 40 ? entry.prompt.substring(0, 40) + "..." : entry.prompt;
+
+            const node = document.createElement('div');
+            node.className = 'timeline-node';
+
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'timeline-prompt';
+            promptDiv.textContent = `"${shortPrompt}"`;
+
+            const idDiv = document.createElement('div');
+            idDiv.className = 'timeline-id';
+            idDiv.textContent = entry.id;
+
+            const link = document.createElement('a');
+            link.className = 'timeline-link';
+            link.target = '_blank';
+            link.setAttribute('href', entry.url);
+            link.innerHTML = 'Ver en explorador <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+            node.appendChild(promptDiv);
+            node.appendChild(idDiv);
+            node.appendChild(link);
+            return node;
+        }
+
+        function renderHistorialWallet(address) {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            const items = leerHistorialWallet(address);
+            if (items.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'timeline-empty';
+                p.id = 'emptyHistory';
+                p.textContent = 'Aún no hay contratos desplegados.';
+                historyList.appendChild(p);
+                return;
+            }
+            items.forEach(entry => historyList.appendChild(crearNodoHistorial(entry)));
         }
 
         async function elegirWallet(mod, statusEl) {
@@ -611,6 +682,8 @@
                     // despliega a testnet, así que esta combinación no puede funcionar todavía.
                     // No es un error de configuración nuestro, es una limitación actual del Snap.
                     statusEl.textContent = 'El Snap de Stellar de MetaMask todavía no soporta testnet (solo mainnet) — no se puede usar con Brevik por ahora. Prueba con Freighter, Albedo u otra wallet.';
+                } else if (mod.productId === 'freighter' && /requestAccess|freighterApi/i.test(mensaje)) {
+                    statusEl.textContent = 'No se detectó la extensión de Freighter. Instálala desde freighter.app, actívala para este sitio y recarga la página.';
                 } else {
                     statusEl.textContent = `No se pudo conectar con ${mod.productName}: ${mensaje || 'intenta de nuevo.'}`;
                 }
@@ -884,29 +957,16 @@
             const emptyMsg = document.getElementById('emptyHistory');
             if (emptyMsg) emptyMsg.remove();
 
-            const shortPrompt = promptText.length > 40 ? promptText.substring(0, 40) + "..." : promptText;
+            const entry = { id, url, prompt: promptText, ts: Date.now() };
+            historyList.prepend(crearNodoHistorial(entry));
 
-            const node = document.createElement('div');
-            node.className = 'timeline-node';
-
-            const promptDiv = document.createElement('div');
-            promptDiv.className = 'timeline-prompt';
-            promptDiv.textContent = `"${shortPrompt}"`;
-
-            const idDiv = document.createElement('div');
-            idDiv.className = 'timeline-id';
-            idDiv.textContent = id;
-
-            const link = document.createElement('a');
-            link.className = 'timeline-link';
-            link.target = '_blank';
-            link.setAttribute('href', url);
-            link.innerHTML = 'Ver en explorador <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
-
-            node.appendChild(promptDiv);
-            node.appendChild(idDiv);
-            node.appendChild(link);
-            historyList.prepend(node);
+            // Solo se persiste si hay una wallet conectada; los despliegues "genéricos"
+            // (sin wallet) quedan visibles nada más en esta pestaña, como antes.
+            if (walletPublicKey) {
+                const items = leerHistorialWallet(walletPublicKey);
+                items.unshift(entry);
+                guardarHistorialWallet(walletPublicKey, items);
+            }
         }
 
         // El script es un módulo (para poder usar `import`), así que estas funciones
