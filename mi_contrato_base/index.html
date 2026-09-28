@@ -512,8 +512,17 @@
             productUrl = "https://www.freighter.app/";
             productIcon = "https://stellar.creit.tech/wallet-icons/freighter.png";
 
-            isAvailable() {
-                return Promise.resolve(typeof window.freighterApi !== 'undefined');
+            async isAvailable() {
+                // window.freighterApi existe siempre que el script de freighter-api cargó
+                // bien, tenga o no la extensión instalada; isConnected() sí distingue si
+                // la extensión real está presente y activa.
+                if (typeof window.freighterApi === 'undefined') return false;
+                try {
+                    const result = await window.freighterApi.isConnected();
+                    return !!result?.isConnected;
+                } catch (e) {
+                    return false;
+                }
             }
             async getAddress() {
                 const { address } = await window.freighterApi.requestAccess();
