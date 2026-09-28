@@ -21,12 +21,11 @@ services:
   - type: web
     name: prompt2contract-frontend
     runtime: static
-    rootDir: mi_contrato_base
     buildCommand: "true"
-    staticPublishPath: .
+    staticPublishPath: mi_contrato_base
     buildFilter:
       paths:
-        - index.html
+        - mi_contrato_base/index.html
     routes:
       - type: rewrite
         source: /*
