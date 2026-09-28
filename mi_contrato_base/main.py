@@ -46,8 +46,8 @@ MAX_GENERATION_ATTEMPTS = 3
 # soroban-sdk es una dependencia pesada: la primera compilación en un contenedor
 # sin caché de cargo (target/ vacío) puede tardar varios minutos. Compilaciones
 # posteriores en el mismo contenedor reusan la caché y son mucho más rápidas.
-CARGO_TEST_TIMEOUT = 300
-BUILD_TIMEOUT = 300
+CARGO_TEST_TIMEOUT = 600
+BUILD_TIMEOUT = 600
 DEPLOY_TIMEOUT = 60
 INVOKE_TIMEOUT = 60
 AUDIT_TIMEOUT_NOTE = "La auditoría es best-effort y nunca bloquea el despliegue."
