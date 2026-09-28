@@ -19,7 +19,7 @@ services:
         value: "600"
 
   - type: web
-    name: prompt2contract-frontend
+    name: brevik-stellar
     runtime: static
     buildCommand: "true"
     staticPublishPath: mi_contrato_base
