@@ -40,7 +40,7 @@ STELLAR_SOURCE_IDENTITY = os.environ.get("STELLAR_SOURCE_IDENTITY", "alice")
 RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("RATE_LIMIT_MAX_REQUESTS", "5"))
 RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "600"))
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash-lite")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 MAX_GENERATION_ATTEMPTS = 3
 # soroban-sdk es una dependencia pesada: la primera compilación en un contenedor
