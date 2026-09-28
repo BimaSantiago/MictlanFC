@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: standard
+    plan: free
     envVars:
       - key: GEMINI_API_KEY
         sync: false
@@ -16,10 +16,6 @@ services:
         value: "5"
       - key: RATE_LIMIT_WINDOW_SECONDS
         value: "600"
-    disk:
-      name: stellar-identity
-      mountPath: /root/.config/stellar
-      sizeGB: 1
 
   - type: web
     name: prompt2contract-frontend
