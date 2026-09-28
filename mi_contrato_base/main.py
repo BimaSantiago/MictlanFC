@@ -238,6 +238,7 @@ def _llamar_gemini(contents: str, intentos: int = GEMINI_TRANSIENT_RETRIES) -> s
             print(f"[SISTEMA] Gemini no disponible (intento {intento}/{intentos}): {e}. Reintentando en {espera:.1f}s...")
             time.sleep(espera)
 
+    print(f"[SISTEMA] Gemini fallo definitivo: {ultimo_error}")
     raise HTTPException(
         status_code=503,
         detail="El servicio de IA (Gemini) no está disponible en este momento. Intenta de nuevo en unos minutos.",
