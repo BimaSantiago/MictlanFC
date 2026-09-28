@@ -483,10 +483,10 @@
     <!-- El paquete de Freighter que trae el wallet kit no carga desde esm.sh (su bundle
          UMD confunde la detección de named exports del CDN); usamos en su lugar el
          build directo de Freighter y un módulo propio para el kit, ver más abajo.
-         Se usa jsdelivr con versión fija (no unpkg sin versión): unpkg resuelve la
-         versión con un redirect que a veces devuelve 503 o se queda colgado, dejando
-         window.freighterApi indefinido y la conexión falla con "no instalada". -->
-    <script src="https://cdn.jsdelivr.net/npm/@stellar/freighter-api@6.0.1/dist/index.min.js"></script>
+         La ruta correcta del bundle es build/index.min.js, NO dist/index.min.js (ese
+         path no existe en el paquete — pedirlo daba 404/503 según el CDN, dejando
+         window.freighterApi indefinido y la conexión fallaba con un TypeError). -->
+    <script src="https://cdn.jsdelivr.net/npm/@stellar/freighter-api@6.0.1/build/index.min.js"></script>
     <script type="module">
         // Stellar Wallets Kit: un solo selector para varias wallets, sin integrar cada
         // una a mano. OJO: no se puede importar el paquete "modules/utils" (el que trae
