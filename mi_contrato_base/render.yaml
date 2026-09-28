@@ -22,6 +22,7 @@ services:
     name: prompt2contract-frontend
     runtime: static
     rootDir: mi_contrato_base
+    buildCommand: "true"
     staticPublishPath: .
     buildFilter:
       paths:
